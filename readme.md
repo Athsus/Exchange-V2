@@ -13,8 +13,8 @@ V1 is a deprecated and private repository, developed at the beginning of 2022.
 <li>UniswapV2</li>
 <li>UniswapV3</li>
 <li>1inch</li>
-<li>Aptos swap</li>
-<li>Aux swap</li>
+<li>Aptos swap(ts applied)</li>
+<li>Aux swap(ts applied)</li>
 <li>Frax swap</li>
 <li>Kyber swap</li>
 <li>Mute swap</li>
@@ -30,7 +30,7 @@ You can enable it by uncommenting the code in gui.py
 
 ## Unsupported files
 ```
-loop.py, gui.py, ...
+loop.py, gui.py, aptos...
 ```
 They are important strategy files that are not included in the repository.
 
