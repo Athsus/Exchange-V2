@@ -76,5 +76,10 @@ chain_list = {
   "1313161554": "aurora",
   "1666600000": "harmony",
   "11297108109": "palm",
-  "836542336838601": "curio"
+  "836542336838601": "curio",
+  "1101": "polygon_zkevm"
 }
+
+HEADER = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82"
+    }
