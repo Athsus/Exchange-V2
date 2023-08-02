@@ -1,6 +1,8 @@
 import requests
 
+from _utils.log import log
 from chain_operation import constants
+from chain_operation.constants import HEADER
 from chain_operation.exception_handler import transaction_exception_handler
 import web3
 
@@ -36,7 +38,6 @@ def send_transaction(web3: web3.Web3,
     else:
         gas_price = float(gas_price)
 
-
     # buy
     if side == 0:
         inTokenAddress = token_right_address
@@ -54,27 +55,34 @@ def send_transaction(web3: web3.Web3,
         "slippage": 1
     }
     url = base_url + "?" + "&".join([key + "=" + str(value) for key, value in params.items()])
-    req = requests.get(url=url)
-    status_code = req.json()["code"]
-    if status_code != 200:
-        raise Exception(send_transaction, req.text)
-    req_json = req.json()
-    hex_data = req_json["data"]["data"]
+    MAX_RETRY = 10
+    while MAX_RETRY:
+        try:
+            MAX_RETRY -= 1
+            req = requests.get(url=url, headers=HEADER)
+            status_code = req.json()["code"]
+            if status_code != 200:
+                raise Exception(send_transaction, req.text)
+            req_json = req.json()
+            hex_data = req_json["data"]["data"]
 
-    # Build transaction
-    signed_txn = web3.eth.account.sign_transaction(dict(
-        nonce=nonce,
-        maxFeePerGas=gas_price,
-        maxPriorityFeePerGas=gas_price,
-        # gasPrice=gas_price,
-        gas=gas_limit,
-        chainId=chain_id,
-        to=to,
-        data=hex_data,
-    ),
-        signature,
-    )
-    # Send transaction
-    txn_hash = web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+            # Build transaction
+            signed_txn = web3.eth.account.sign_transaction(dict(
+                nonce=nonce,
+                maxFeePerGas=gas_price,
+                maxPriorityFeePerGas=gas_price,
+                # gasPrice=gas_price,
+                gas=gas_limit,
+                chainId=chain_id,
+                to=to,
+                data=hex_data,
+            ),
+                signature,
+            )
+            # Send transaction
+            txn_hash = web3.eth.sendRawTransaction(signed_txn.rawTransaction)
 
-    return txn_hash.hex()
+            return txn_hash.hex()
+        except Exception:
+            log.warning(f"failed to send transaction, retrying")
+    return None

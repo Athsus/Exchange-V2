@@ -1,6 +1,7 @@
 import requests
 import web3
 
+from chain_operation.constants import HEADER
 from chain_operation.exception_handler import chain_exception_catcher
 
 
@@ -44,7 +45,7 @@ def get_price(
         "slippageLimitPercent": 0.3,
         "sourceBlacklist": [],
         "sourceWhitelist": [],
-        "userAddr": "0x75a8816b106f973424D2a2ceB5B277179d1a79bf"
+        "userAddr": my_address
     }
     req = requests.post(url=url, json=params)
     if req.status_code != 200:
@@ -78,7 +79,7 @@ def get_price(
         # 添加其他新选项根据你的需要
     }
 
-    req = requests.post(url=url, json=params)
+    req = requests.post(url=url, json=params, headers=HEADER)
     if req.status_code != 200:
         raise Exception(get_price, req.text)
     req_json = req.json()

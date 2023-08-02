@@ -1,6 +1,8 @@
 import requests
 import web3 as web3
 
+from _utils.log import log
+from chain_operation.constants import HEADER
 from chain_operation.exception_handler import transaction_exception_handler
 import web3
 
@@ -24,29 +26,44 @@ def get_quote_path_id(chain_id, sender, in_addr, out_addr, dec, amount):
         "slippageLimitPercent": 0.5,
         "userAddr": sender
     }
-    req = requests.post(url=url, json=params)
-    if req.status_code != 200:
-        raise Exception(get_quote_path_id, req.text)
-    req_json = req.json()
-    return req_json["pathId"]
+    MAX_RETRY = 10
+    while MAX_RETRY:
+        try:
+            MAX_RETRY -= 1
+            log.info(f"getting path id, {MAX_RETRY} times left")
+            # must complete.
+            req = requests.post(url=url, json=params, headers=HEADER)
+            req_json = req.json()
+            return req_json["pathId"]
+        except Exception as e:
+            log.warning("get quote failed, retrying")
+    return None
 
 
 
 def get_assemble(chain_id, sender, in_addr, out_addr, dec, amount):
     path_id = get_quote_path_id(chain_id, sender, in_addr, out_addr, dec, amount)
+    if path_id is None:
+        raise Exception("get path id failed")
     params = {
         "userAddr": sender,
         "pathId": path_id,
         "simulate": False
     }
     url = "https://api.odos.xyz/sor/assemble"
-    req = requests.post(url=url, json=params)
-    if req.status_code != 200:
-        raise Exception(get_assemble, req.text)
-    req_json = req.json()
-    hex_data = req_json["transaction"]["data"]
-    to = req_json["transaction"]["to"]
-    return hex_data, to
+    MAX_RETRY = 10
+    while MAX_RETRY:
+        try:
+            MAX_RETRY -= 1
+            log.info(f"getting assemble {MAX_RETRY} times left")
+            req = requests.post(url=url, json=params, headers=HEADER)
+            req_json = req.json()
+            hex_data = req_json["transaction"]["data"]
+            to = req_json["transaction"]["to"]
+            return hex_data, to
+        except Exception:
+            log.warning("get quote failed, retrying")
+    return None, None
 
 
 @transaction_exception_handler
@@ -69,13 +86,17 @@ def send_transaction(web3: web3.Web3,
                      slave_decimals=None,
                      pool=None
                      ) -> str:
-    if side == 0:
+    if side == 1:
+        # buy
         hex_data, to = get_assemble(chain_id, sender, token_left_address, token_right_address, token_left_decimals,
                                     quantity)
-    elif side == 1:
+    elif side == 0:
         hex_data, to = get_assemble(chain_id, sender, token_right_address, token_left_address, token_right_decimals,
                                     quantity)
-
+    else:
+        raise Exception(f"side error: {side}")
+    if hex_data is None:
+        raise Exception("get assemble failed")
     nonce = data["nonce"]
     gas_price = data["gas_price"]
 

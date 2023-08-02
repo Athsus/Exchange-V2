@@ -34,9 +34,11 @@ def get_price(
         "slippage": "1",
         "gasPrice": 0.1
     }
+    header = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82"
+    }
     url = url + "?" + "&".join([key + "=" + str(value) for key, value in params.items()])
-
-    req = requests.get(url=url)
+    req = requests.get(url=url, headers=header)
     status_code = req.json()["code"]
     if status_code != 200:
         raise Exception(get_price, req.text)
@@ -59,9 +61,6 @@ def get_price(
     }
     url = f"https://open-api.openocean.finance/v3/{chain_name}/quote"
     url = url + "?" + "&".join([key + "=" + str(value) for key, value in params.items()])
-    header = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82"
-    }
     req = requests.get(url=url, headers=header)
     status_code = req.json()["code"]
     if status_code != 200:
