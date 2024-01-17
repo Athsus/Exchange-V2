@@ -32,7 +32,7 @@ You can enable it by uncommenting the code in gui.py
 ```
 loop.py, gui.py, aptos...
 ```
-They are important strategy files that are not included in the repository.
+They are vital strategy files that are not included in the repository.
 
 ## Contact
 
