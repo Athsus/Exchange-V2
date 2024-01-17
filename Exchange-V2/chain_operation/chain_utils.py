@@ -1,6 +1,8 @@
 import requests
 from web3 import Web3
 import json
+
+from _utils.log import log
 from chain_operation.exception_handler import chain_exception_catcher
 
 from chain_operation.constants import get_balance_abi
@@ -200,7 +202,6 @@ class chain_utils:
     def get_price(self, amount, data):
         """Get Price
         return: (dict)
-        TODO: 测试
 
         双链对情况下，我应该用multi=false的方法获取两边price并且进行计算
         """
@@ -227,7 +228,6 @@ class chain_utils:
                 token_right_address=self.slave_address,
                 token_right_decimals=self.slave_decimals,
                 is_multichain=False,
-
             )
             ret = {"sell_price": price1["sell_price"] * price2["sell_price"],
                    "buy_price": price1["buy_price"] * price2["buy_price"]}
@@ -253,7 +253,7 @@ class chain_utils:
     def send_transaction(self,
                          side: int,
                          quantity: float,
-                         data: dict,
+                         pre_processed_data: dict,
                          is_sturb: bool
                          ) -> tuple:
         """send transaction
@@ -264,16 +264,16 @@ class chain_utils:
                 考虑在购买时,因为某些的router不支持类似
                 exactTokenOut,你买的时候out是普通币数量，
                 无法确切指定，则此时需要传入当前价值进行近似。
-            data: 预处理的数据，常见参数有：nonce，gas_price，fake_price
+            pre_processed_data: 预处理的数据，常见参数有：nonce，gas_price，fake_price
                 为了各取所需...
 
         没必要返回str，因为只需要打印出来就好
         """
         if self.multi_chain_address is True:
             # 解析nonce，此时是tuple
-            nonce1 = data["nonce"][0]
-            nonce2 = data["nonce"][1]
-            data["nonce"] = nonce1
+            nonce1 = pre_processed_data["nonce"][0]
+            nonce2 = pre_processed_data["nonce"][1]
+            pre_processed_data["nonce"] = nonce1
 
             # 麻烦的是quantity，不仅会导致不平仓，而且会有延迟
             # TODO： 怎么办？我是考虑交易完后再看需要交易多少吗？
@@ -289,12 +289,12 @@ class chain_utils:
                 token_right_decimals=self.slave_decimals,
                 gas_limit=self.gas_limit,
                 quantity=quantity,  # 这个还好，还得看顺序，方向...TODO
-                data=data,
+                data=pre_processed_data,
                 signature=self.__meta_key,
                 is_multi=False,
             )
 
-            data["nonce"] = nonce2
+            pre_processed_data["nonce"] = nonce2
             txn2 = self._send_transaction_2(
                 web3=self.web3_2,
                 side=side,
@@ -306,8 +306,8 @@ class chain_utils:
                 token_right_address=self.right_address,
                 token_right_decimals=self.right_decimals,
                 gas_limit=self.gas_limit,
-                quantity=quantity,  # 不妙啊...TODO
-                data=data,
+                quantity=quantity,
+                data=pre_processed_data,
                 signature=self.__meta_key_2,
                 is_multi=False,
             )
@@ -325,7 +325,7 @@ class chain_utils:
                 token_right_decimals=self.right_decimals,
                 gas_limit=self.gas_limit,
                 quantity=quantity,
-                data=data,
+                data=pre_processed_data,
                 signature=self.__meta_key,
                 is_multi=self.is_multi,
                 slave_address=self.slave_address,
@@ -333,7 +333,23 @@ class chain_utils:
                 is_sturb=is_sturb,
                 pool=self.lp1
             )
-            return txn
+            # 看看txn是否成功
+            if txn:
+                log.info("等待交易确认")
+                try:
+                    receipt = self.web3.eth.wait_for_transaction_receipt(txn, timeout=30)
+                    if receipt["status"] == 1:
+                        log.info("确认成功")
+                        return txn, True
+                    else:
+                        log.warning("确认失败")
+                        return txn, False
+                except Exception as e:
+                    log.warning("确认超时了")
+                    return txn, False
+            else:
+                log.warning("交易失败，甚至没有txn")
+                return None, False
 
 
 if __name__ == "__main__":

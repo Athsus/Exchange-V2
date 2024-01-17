@@ -6,6 +6,10 @@ import web3 as web3
 
 from chain_operation.exception_handler import transaction_exception_handler
 
+INCH_API_KEY = "bVT1x0WvwoMlzVnnMTYW4xhFuoew6ByX"
+AUTH_HEADER = {
+    "Authorization": "Bearer {}".format(INCH_API_KEY)
+}
 
 def get_swap(
         my_address,
@@ -22,14 +26,14 @@ def get_swap(
     while True:
         try:
             print("1inch: ", int(amount))
-            url = f"https://api.1inch.io/v5.0/{chain_id}/swap?" \
-                  f"fromTokenAddress={fromTokenAddress}" \
-                  f"&toTokenAddress={toTokenAddress}" \
+            url = f"https://api.1inch.dev/swap/v5.2/{chain_id}/swap?" \
+                  f"src={fromTokenAddress}" \
+                  f"&dst={toTokenAddress}" \
                   f"&amount={int(amount)}" \
-                  f"&fromAddress={my_address}" \
+                  f"&from={my_address}" \
                   f"&slippage={slippage}"
 
-            req = requests.get(url=url)
+            req = requests.get(url=url, headers=AUTH_HEADER)
             if req.status_code != 200:
                 raise Exception("1inch get swap error： {}, {}, {}".format(req.status_code, req.text, url))
             dic = json.loads(req.text)

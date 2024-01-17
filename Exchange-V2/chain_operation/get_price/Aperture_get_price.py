@@ -22,76 +22,55 @@ def get_price(
         is_multichain: bool,
         chain_id: int,
         data: dict) -> dict:
-
-    headers = {
-        'User-Agent': UA,
-        'Origin': 'https://app.uniswap.org',
-        'Referer': 'https://app.uniswap.org/',
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate, br',
-
-    }
-    base_url = "https://api.uniswap.org/v2/quote"
+    base_url = "https://uniswap-api.aperture.finance/v2/quote"
     # sell price: exactOut: Amount
     sell_query_dict = {
-
-        'sendPortionEnabled': True,
-        'configs': [
-            {"routingType": "CLASSIC",
-             "protocols": ["V2", "V3", "MIXED"],
-             "enableUniversalRouter": True,
-             "recipient": my_address,
-             }
-        ],
-
-        'amount': str(int(amount * 10 ** token_right_decimals)),
+        'User-Agent': UA,
         'tokenIn': token_left_address,
         'tokenInChainId': chain_id,
         'tokenOut': token_right_address,
         'tokenOutChainId': chain_id,
-
-        'type': 'EXACT_OUTPUT'
+        'amount': str(int(amount * 10 ** token_right_decimals)),
+        'type': 'EXACT_OUTPUT',
+        'configs': [
+            {"routingType": "CLASSIC", "protocols": ["V2", "V3", "MIXED"]}
+        ]
     }
-    req = requests.post(url=base_url, json=sell_query_dict, headers=headers)
+    tail = []
+    for key, val in sell_query_dict.items():
+        tail.append(f'{key}={val}')
+    tail = '&'.join(tail)
+    req = requests.post(url=base_url, json=sell_query_dict)
     if req.status_code != 200:
         raise Exception(req.text)
     req_js = req.json()
-    sell_route = req_js['quote']
     ret_amt = int(req_js['quote']['amount'])
     ret_quote = int(req_js['quote']['quote'])
     sell_price = (ret_amt / ret_quote) * 10 ** (token_left_decimals - token_right_decimals)
 
     fake_price = (data['sell_pred'] + data['buy_pred']) / 2
     buy_query_dict = {
+        'User-Agent': UA,
         'tokenIn': token_right_address,
         'tokenInChainId': chain_id,
         'tokenOut': token_left_address,
         'tokenOutChainId': chain_id,
         'amount': str(int(amount * 10 ** token_right_decimals)),
-        'type': 'EXACT_INPUT',
-        'sendPortionEnabled': True,
-        'configs': [
-            {"routingType": "CLASSIC",
-             "protocols": ["V2", "V3", "MIXED"],
-             "enableUniversalRouter": True,
-             "recipient": my_address,
-             }
-        ],
+        'type': 'EXACT_INPUT'
     }
-    req = requests.post(url=base_url, json=buy_query_dict, headers=headers)
+    tail = []
+    for key, val in buy_query_dict.items():
+        tail.append(f'{key}={val}')
+    tail = '&'.join(tail)
+    req = requests.get(url=base_url + '?' + tail)
     if req.status_code != 200:
         raise Exception(req.text)
     req_js = req.json()
     ret_amt = int(req_js['quote']['amount'])
     ret_quote = int(req_js['quote']['quote'])
     buy_price = (ret_amt / ret_quote) * 10 ** (token_left_decimals - token_right_decimals)
-    buy_route = req_js['quote']
+
     return {
         "sell_price": sell_price,
-        "buy_price": buy_price,
-        "route": {
-            "sell_route": sell_route,
-            "buy_route": buy_route
-        }
+        "buy_price": buy_price
     }

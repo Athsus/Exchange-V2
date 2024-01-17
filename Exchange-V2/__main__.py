@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# https://www.cnblogs.com/linyfeng/p/11223707.html
+
 import sys
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread
 from PyQt5 import QtCore, QtGui

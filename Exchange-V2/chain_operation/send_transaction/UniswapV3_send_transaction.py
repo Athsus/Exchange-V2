@@ -1,114 +1,110 @@
 import json
 import time
 
-from chain_operation.exception_handler import transaction_exception_handler
+import requests
 
-import web3
-
-from _utils.uniswap import Uniswap
 slippage = 0.05
 
-@transaction_exception_handler
-def send_transaction(web3: web3.Web3,
-                     side: int,
-                     sender: str,
-                     to: str,
-                     chain_id: int,
-                     token_left_address: str,
-                     token_left_decimals: int,
-                     token_right_address: str,
-                     token_right_decimals: int,
-                     gas_limit: int,
-                     quantity: float,
-                     data: dict,
-                     signature: str,
-                     is_multi,
-                     is_sturb: bool,
-                     slave_address=None,
-                     slave_decimals=None,
-                     pool=None
-                     ) -> str:
-    """Send Transaction
 
-    Args:
-        web3: (Web3 Object) Father
-        side: buy?sell?
-        sender: (str)
-        to: (str)
-        chain_id: (int)
-        token_left_address: (str)
-        token_left_decimals: (int)
-        token_right_address: (str)
-        token_right_decimals: (int)
-        gas_limit: (int)
-        quantity: (int) in quantity
-        data: (dict) PRE-loaded data
-        signature: (str) XXXXXXXXXXXXXXX
-        is_multi: (bool) True/False
+def get_quote(
+        my_address,
+        amount,
+        token_in_address,
+        token_in_decimals,
+        token_out_address,
+        token_out_decimals,
+        chain_id,
 
-        slave_address: (str)
-        slave_decimals: (int)
+):
+    headers = {
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        'Origin': 'https://app.uniswap.org',
+        'Referer': 'https://app.uniswap.org/',
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+
+    }
+    base_url = "https://api.uniswap.org/v2/quote"
+    # sell price: exactOut: Amount
+    sell_query_dict = {
+
+        'sendPortionEnabled': True,
+        'configs': [
+            {"routingType": "CLASSIC",
+             "protocols": ["V2", "V3", "MIXED"],
+             "enableUniversalRouter": True,
+             "recipient": my_address,
+             }
+        ],
+
+        'amount': str(int(amount * 10 ** token_out_decimals)),
+        'tokenIn': token_in_address,
+        'tokenInChainId': chain_id,
+        'tokenOut': token_out_address,
+        'tokenOutChainId': chain_id,
+
+        'type': 'EXACT_OUTPUT'
+    }
+    MAX_RETRY = 5
+    while MAX_RETRY:
+        MAX_RETRY -= 1
+        req = requests.post(url=base_url, json=sell_query_dict, headers=headers)
+        if req.status_code != 200:
+            time.sleep(2)
+            continue
+        req_js = req.json()
+        return req_js["quote"]["methodParameters"]["calldata"], req_js["quote"]["methodParameters"]["value"]
+    raise Exception("链上交易失败，无法获取交易数据")
+
+
+def send_transaction(**components) -> str:
+    """Send Transaction Uniswap V3 Simulator
     """
     # pre reading
-    nonce = data["nonce"]
-    gas_price = int(data["gas_price"])
-    # Convert quantity to token decimals
-    quantity_wei = int(quantity * 10 ** token_left_decimals)
 
-    with open("_utils/uniswap/assets/uniswap-v3/router.abi", "r", encoding="utf-8") as f:
-        univ3_abi = json.loads(f.read())
+    pre_load_data = components["data"]
+    nonce = pre_load_data["nonce"]
+    gas_price = int(pre_load_data["gas_price"])
+    quantity = components["quantity"]
+    token_left_address = components["token_left_address"]
+    token_left_decimals = components["token_left_decimals"]
+    token_right_address = components["token_right_address"]
+    token_right_decimals = components["token_right_decimals"]
+    web3 = components["web3"]
+    signature = components["signature"]
+    side = components["side"]
+    to = components["to"]
+    gas_limit = components["gas_limit"]
+    chain_id = components["chain_id"]
+    my_address = components["sender"]
+    amount = components["quantity"]
 
-    router_contract = web3.eth.contract(address=to, abi=univ3_abi)
-
-    functions = router_contract.functions
-
+    # BUY
     if side == 0:
-        # buy
-        func = functions.exactInputSingle
-        hex_data = func(
-            {
-                "tokenIn": token_right_address,
-                "tokenOut": token_left_address,
-                "fee": 3000,
-                "recipient": to,
-                "deadline": int(time.time()) + 1000000000000000000,
-                "amountIn": quantity_wei,
-                "amountOutMinimum": quantity_wei / (10 ** token_left_decimals) * (10 ** token_right_decimals) * (1 - slippage),
-                "sqrtPriceLimitX96": 0
-            }
-        ).build_transaction({
-            "from": sender,
-            "nonce": nonce,
-            "gasPrice": gas_price,
-            "gas": gas_limit,
-            "chainId": chain_id
-        })
-    elif side == 1:
-        func = functions.exactOutputSingle
-        hex_data = func(
-            {
-                "tokenIn": token_left_address,
-                "tokenOut": token_right_address,
-                "fee": 3000,
-                "recipient": to,
-                "deadline": int(time.time()) + 1000000000000000000,
-                "amountOut": quantity_wei,
-                "amountInMaximum": quantity_wei / (10 ** token_left_decimals) * (10 ** token_right_decimals) * (1 + slippage),
-                "sqrtPriceLimitX96": 0
-            }
-        ).build_transaction({
-            "from": sender,
-            "nonce": nonce,
-            "gasPrice": gas_price,
-            "gas": gas_limit,
-            "chainId": chain_id,
-        })
+        now_data = get_quote(my_address, amount, token_right_address, token_right_decimals,
+                             token_left_address, token_left_decimals,
+                             chain_id)
     else:
-        raise Exception(f"side must be 0 or 1, now is {side}")
+        now_data = get_quote(my_address, amount, token_left_address, token_left_decimals,
+                             token_right_address, token_right_decimals,
+                             chain_id)
 
-    signed_txn = web3.eth.account.sign_transaction(
-        hex_data, private_key=signature
+    hex_data, value = now_data["quote"]["methodParameters"]["calldata"], now_data["quote"]["methodParameters"]["value"]
+    signed_txn = web3.eth.account.sign_transaction(dict(
+        nonce=nonce,
+        maxFeePerGas=gas_price,
+        maxPriorityFeePerGas=gas_price,
+        value=value,
+        # gasPrice=gas_price,
+        gas=gas_limit,
+        chainId=chain_id,
+        to=to,
+        data=hex_data
+    ),
+        signature,
     )
-    txn = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    # Send transaction
+    txn = web3.eth.sendRawTransaction(signed_txn.rawTransaction)
 
     return txn.hex()

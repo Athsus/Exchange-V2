@@ -81,13 +81,16 @@ def send_transaction(web3: web3.Web3,
         slave_decimals: (int)
     """
     print(f"chain: {quantity}")
+
+    slipper_page = 2
+
     nonce = data["nonce"]
     gas_price = data["gas_price"]
     fake_price = data["fake_price"]
 
     type_address_frame = "00000000000000000000000000000000000000000000000000000000000000a0" \
                          + sender.replace("0x", "").zfill(64)
-    timestamp_frame = str(hex(int(time.time()) + 1000000000000000000)).replace("0x", "").zfill(64)
+    timestamp_frame = str(hex(int(time.time()) + 360)).replace("0x", "").zfill(64)
     if side == 0:
         # ----------------BUY---------------
         # 1. path construct:
@@ -101,15 +104,7 @@ def send_transaction(web3: web3.Web3,
                          + token_right_address.replace("0x", "").zfill(64) \
                          + token_left_address.replace("0x", "").zfill(64)
         method = "0x38ed1739"
-        # slipper_seq = get_slipper_seq(
-        #     # slipper_rate=5,
-        #     decimal=token_left_decimals,
-        #     price=fake_price,
-        #     quantity=quantity,
-        #     direction=True,
-        #     target_is_stable=True
-        # )
-        slipper_seq = "0000000000000000000000000000000000000000000000000000000000000000"
+        slipper_seq = f"{str(hex(int((quantity * fake_price * ((100 + slipper_page) / 100)) * 10 ** token_right_decimals))).replace('0x', '').zfill(64)}"
         price_frame = str(hex(int(quantity * (10 ** token_left_decimals)))).replace("0x", "").zfill(64)
         hex_data = method + \
                    price_frame + \
@@ -135,15 +130,8 @@ def send_transaction(web3: web3.Web3,
                              + token_left_address.replace("0x", "").zfill(64) \
                              + token_right_address.replace("0x", "").zfill(64)
             method = "0x38ed1739"
-            # slipper_seq = get_slipper_seq(
-            #     slipper_rate=0.5,
-            #     decimal=token_left_decimals,
-            #     price=fake_price,
-            #     quantity=quantity,
-            #     direction=False,
-            #     target_is_stable=True
-            # )
-            slipper_seq = "0000000000000000000000000000000000000000000000000000000000000000"
+            # sell, exact 1.5 eth -> a lowerbound quantity of usdt
+            slipper_seq = f"{str(hex(int((quantity * fake_price * ((100 - slipper_page) / 100)) * 10 ** token_right_decimals))).replace('0x', '').zfill(64)}"
             price_frame = str(hex(int(quantity * (10 ** token_left_decimals)))).replace("0x", "").zfill(64)
             hex_data = method + \
                        price_frame + \

@@ -77,7 +77,8 @@ chain_list = {
   "1666600000": "harmony",
   "11297108109": "palm",
   "836542336838601": "curio",
-  "1101": "polygon_zkevm"
+  "1101": "polygon_zkevm",
+  "8453": "base"
 }
 
 HEADER = {
