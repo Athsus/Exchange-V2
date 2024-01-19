@@ -4,11 +4,11 @@ A simple (yet not so simple) trading bot for the cryptocurrency exchanges Binanc
 V1 is a deprecated and private repository, developed at the beginning of 2022.
 
 ## Features
-1. trading on exchange platforms which are:
+### trading on exchange platforms which are:
 <li>Binance</li>
 <li>Okx</li>
 
-2. Trading on blockchain swap routers:
+### Trading on blockchain swap routers:
 <li>0x swap</li>
 <li>UniswapV2</li>
 <li>UniswapV3</li>
@@ -31,7 +31,7 @@ V1 is a deprecated and private repository, developed at the beginning of 2022.
 <li>Aperture swap(general chains and manta)</li>
 <li>Jup solana</li>
 
-3. GUI for trading parameters tuning<br>
+### GUI for trading parameters tuning<br>
 By the way, GUI is hidden away from the repo.<br>
 You can enable it by uncommenting the code in gui.py
 
