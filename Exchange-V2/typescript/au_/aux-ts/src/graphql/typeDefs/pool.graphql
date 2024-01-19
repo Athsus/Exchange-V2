@@ -1,0 +1,135 @@
+input PoolInput {
+  coinTypes: [String!]!
+  curve: Curve
+}
+
+enum Curve {
+  CONSTANT_PRODUCT
+  STABLE_SWAP
+}
+
+enum FeaturedStatus {
+  NONE
+  HOT
+  PROMOTED
+}
+
+type Pool {
+  type: String!
+  coinInfos: [CoinInfo!]!
+  coinInfoLP: CoinInfo!
+  amounts: [Float!]!
+  amountLP: Float!
+  feePercent: Float!
+  featuredStatus: FeaturedStatus!
+  swaps(owner: Address, first: Int, offset: Int): [Swap!]!
+  adds(owner: Address, first: Int, offset: Int): [AddLiquidity!]!
+  removes(owner: Address, first: Int, offset: Int): [RemoveLiquidity!]!
+  position(owner: Address!): Position
+  price(coinTypeIn: String!, coinTypeOut: String!, amountIn: Float!): Float!
+  quoteExactIn(
+    coinTypeIn: String!
+    coinTypeOut: String!
+    amountIn: Float!
+    slippagePct: Float
+  ): QuoteExactIn!
+  quoteExactOut(
+    coinTypeIn: String!
+    coinTypeOut: String!
+    amountOut: Float!
+    slippagePct: Float
+  ): QuoteExactOut!
+  summaryStatistics: PoolSummaryStatistics!
+}
+
+type Position {
+  coinInfos: [CoinInfo!]!
+  coinInfoLP: CoinInfo!
+  amounts: [Float!]!
+  amountLP: Float!
+  share: Float!
+}
+
+input CreatePoolInput {
+  poolInput: PoolInput!
+  feeBasisPoints: String!
+}
+
+input AddLiquidityInput {
+  poolInput: PoolInput!
+  amounts: [Float!]!
+  useAuxAccount: Boolean
+}
+
+input RemoveLiquidityInput {
+  poolInput: PoolInput!
+  amountLP: Float!
+  useAuxAccount: Boolean
+}
+
+input SwapExactInInput {
+  poolInput: PoolInput!
+  coinTypeIn: String!
+  coinTypeOut: String!
+  amountIn: Float!
+  quoteAmountOut: Float!
+  slippagePct: Float
+}
+
+input SwapExactOutInput {
+  poolInput: PoolInput!
+  coinTypeIn: String!
+  coinTypeOut: String!
+  amountOut: Float!
+  quoteAmountIn: Float!
+  slippagePct: Float
+}
+
+type Swap {
+  version: String!
+  coinInfoIn: CoinInfo!
+  coinInfoOut: CoinInfo!
+  amountIn: Float!
+  amountOut: Float!
+  time: Timestamp!
+}
+
+type AddLiquidity {
+  version: String!
+  amountsAdded: [Float!]!
+  amountMintedLP: Float!
+  time: Timestamp!
+}
+
+type RemoveLiquidity {
+  version: String!
+  amountsRemoved: [Float!]!
+  amountBurnedLP: Float!
+  time: Timestamp!
+}
+
+type QuoteExactIn {
+  expectedAmountOut: Float!
+  minAmountOut: Float!
+  feeAmount: Float!
+  feeCurrency: CoinInfo!
+  feeAmountDollars: Float
+  priceOut: Float!
+  priceIn: Float!
+  priceImpactPct: Float!
+  priceImpactRating: RatingColor!
+  pythRating: PythRating
+}
+
+type QuoteExactOut {
+  expectedAmountIn: Float!
+  maxAmountIn: Float!
+  maxFeeAmount: Float!
+  feeCurrency: CoinInfo!
+  maxFeeAmountDollars: Float
+  priceOut: Float!
+  priceIn: Float!
+  priceImpactPct: Float!
+  priceImpactRating: RatingColor!
+  pythRating: PythRating
+}
