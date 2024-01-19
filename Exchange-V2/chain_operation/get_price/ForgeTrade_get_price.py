@@ -1,7 +1,6 @@
 import requests
 import web3
 
-from chain_operation import constants
 from chain_operation.exception_handler import chain_exception_catcher
 
 

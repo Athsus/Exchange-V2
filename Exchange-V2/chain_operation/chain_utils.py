@@ -1,4 +1,5 @@
 import requests
+
 from web3 import Web3
 import json
 
@@ -122,6 +123,48 @@ class chain_utils:
         """
         # 方便维护就写两边了
         # 一般情况不传参数
+
+        # SOLANA
+        if self.fork == 19:
+            from solana.rpc.api import Client
+            from solders.pubkey import Pubkey
+            from spl.token.instructions import get_associated_token_address
+
+            client = Client(self.provider)
+            account = Pubkey.from_string(self.my_address)
+
+            left_pubkey = Pubkey.from_string(self.left_address)
+            right_pubkey = Pubkey.from_string(self.right_address)
+
+            associate_left = get_associated_token_address(account, left_pubkey)
+            associate_right = get_associated_token_address(account, right_pubkey)
+
+            resp_left = client.get_token_account_balance(associate_left)
+            resp_right = client.get_token_account_balance(associate_right)
+
+            left_js = json.loads(resp_left.to_json())
+            right_js = json.loads(resp_right.to_json())
+
+            try:
+                rest_left = float(left_js["result"]["value"]["uiAmount"])
+            except:
+                log.info("SOLANA: left token not found, try to get SOL balance")
+                SOL_resp = client.get_balance(account)
+                SOL_js = json.loads(SOL_resp.to_json())
+                rest_SOL = SOL_js["result"]["value"] / 10 ** 9
+                rest_left = rest_SOL
+
+            try:
+                rest_right = float(right_js["result"]["value"]["uiAmount"])
+            except:
+                log.info("SOLANA: right token not found, try to get SOL balance")
+                SOL_resp = client.get_balance(account)
+                SOL_js = json.loads(SOL_resp.to_json())
+                rest_SOL = SOL_js["result"]["value"] / 10 ** 9
+                rest_right = rest_SOL
+
+            return rest_left, rest_right
+
         if self.fork == 2 or self.fork == 3:  # Aptos: Hippo, Aux
             url = "https://wqb9q2zgw7i7-mainnet.hasura.app/v1/graphql"
             data_json = {
@@ -191,8 +234,9 @@ class chain_utils:
 
         TODO: 长期：不要往main传回nonce了，传进chain的buffer里面吧
         """
-        if self.fork == 2 or self.fork == 3:
+        if self.fork == 2 or self.fork == 3 or self.fork == 19:
             # Aptos 不需要Nonce
+            # SOLANA 不需要Nonce
             return 0
         if self.multi_chain_address:
             return self.web3.eth.get_transaction_count(self.my_address, "pending"), self.web3_2.eth.get_transaction_count(self.my_address_2, "pending"),
@@ -334,7 +378,8 @@ class chain_utils:
                 pool=self.lp1
             )
             # 看看txn是否成功
-            if txn:
+            # EVM
+            if txn[:1] == "0x":
                 log.info("等待交易确认")
                 try:
                     receipt = self.web3.eth.wait_for_transaction_receipt(txn, timeout=30)
@@ -347,9 +392,13 @@ class chain_utils:
                 except Exception as e:
                     log.warning("确认超时了")
                     return txn, False
-            else:
+            elif txn is None:
+                # todo 是不是solana失败也会来到这里
                 log.warning("交易失败，甚至没有txn")
                 return None, False
+            else:
+                # SOLANA default success
+                return txn, True
 
 
 if __name__ == "__main__":
