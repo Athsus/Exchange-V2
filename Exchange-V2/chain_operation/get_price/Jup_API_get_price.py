@@ -59,7 +59,7 @@ def get_price(
     out_amt = int(response_js['outAmount'])
 
     buy_price = (in_amt / out_amt) * 10 ** (token_left_decimals - token_right_decimals)
-    print(buy_price, sell_price)
+    # print(buy_price, sell_price)
     return {
         "buy_price": buy_price,
         "sell_price": sell_price

@@ -23,16 +23,17 @@ V1 is a deprecated and private repository, developed at the beginning of 2022.
 <li>Pangea swap</li>
 <li>Sync swap</li>
 <li>Velodrome swap</li>
+<li>Mute swap</li>
+<li>Uniswap V3</li>
+<li>Stella swap uniV3</li>
+<li>Pangea swap</li>
+<li>Forge trade swap</li>
+<li>Aperture swap(general chains and manta)</li>
+<li>Jup solana</li>
 
 3. GUI for trading parameters tuning<br>
 By the way, GUI is hidden away from the repo.<br>
 You can enable it by uncommenting the code in gui.py
-
-## Unsupported files
-```
-loop.py, gui.py, aptos...
-```
-They are vital strategy files that are not included in the repository.
 
 ## Contact
 
