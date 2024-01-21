@@ -27,6 +27,23 @@ class binance_client:
 
     def __init__(self, config):
         self.symbol = config["CONFIG"]["SYMBOL"]
+
+        # judge single or multi
+        self.judge_single(self.symbol)
+        # if symbol is formatted as: ETH,USDT
+        if self.symbol.__contains__(','):
+            # ignore single
+            if self.single:
+                self.symbol.replace(",", "")
+            else:
+                self.left = self.symbol.split(",")[0]
+                self.right = self.symbol.split(",")[1]
+
+        self.main_quantity = config["CONFIG"]["MAIN_QUANTITY"]
+        self.client = Futures(key=config["CONFIG"]["API_KEY"], secret=config["CONFIG"]["SECRET_KEY"])
+        self.precise = self.get_precise(self.symbol, self.single)
+
+    def judge_single(self, symbol):
         if self.symbol.__contains__("BUSD") or self.symbol.__contains__("USDT"):
             self.single = True
         else:
@@ -35,14 +52,13 @@ class binance_client:
             self.default_stable = "USDT"  # 默认USDT为中间
             self.left = ""
             self.right = ""
-        self.main_quantity = config["CONFIG"]["MAIN_QUANTITY"]
-        self.client = Futures(key=config["CONFIG"]["API_KEY"], secret=config["CONFIG"]["SECRET_KEY"])
-        self.precise = self.get_precise(self.symbol, self.single)
 
     @off_chain_exception_handler
     def get_precise(self, symbol, is_single):
         """
-        返回tuple, 如果是双
+        and set self.left, right
+
+        return Tuple(precise1, precise2)
         """
         exchange_info = self.client.exchange_info()
         precise = -1
@@ -51,7 +67,6 @@ class binance_client:
         #     return 0
 
         if is_single is True:
-
             for sym in exchange_info["symbols"]:
                 if sym["symbol"] == symbol:
                     precise = sym["quantityPrecision"]
@@ -59,14 +74,13 @@ class binance_client:
                 raise Exception("大概是SYMBOL填错了罢")
             return precise
         else:
-            # 从exchange_info 解析出左token和右token
+            # 从exchange_info自动解析出左token和右token
             for sym in exchange_info["symbols"]:
                 sym = sym["symbol"]
                 left = sym.replace("USDT", "").replace("BUSD", "")
                 if symbol.__contains__(left):
-                    # 得到左右对
-                    self.left = left
-                    self.right = symbol.replace(left, "")
+                    self.left = self.left if self.left != "" else left
+                    self.right = self.right if self.right != "" else symbol.replace(left, "")
                     print(f"解析的左右token: {self.left}, {self.right}")
                     # 找self.left + "USDT" 和 self.right + "USDT"的precises
                     # 从exchange info找
