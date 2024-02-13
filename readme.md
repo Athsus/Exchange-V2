@@ -1,14 +1,14 @@
 # Exchange-V2
 The V2 version of V1<br>
-A simple (yet not so simple) trading bot for the cryptocurrency exchanges Binance and Okx<br>
+A simple (yet not so simple) trading system for the cryptocurrency exchanges Binance and Okx<br>
 V1 is a deprecated and private repository, developed at the beginning of 2022.
 
 ## Features
-### trading on exchange platforms which are:
+### trading on exchange platforms:
 <li>Binance</li>
 <li>Okx</li>
 
-### Trading on blockchain swap routers:
+### Trading on blockchain with swap routers of:
 <li>0x swap</li>
 <li>UniswapV2</li>
 <li>UniswapV3</li>
@@ -30,10 +30,11 @@ V1 is a deprecated and private repository, developed at the beginning of 2022.
 <li>Forge trade swap</li>
 <li>Aperture swap(general chains and manta)</li>
 <li>Jup solana</li>
+...
 
 ### GUI for trading parameters tuning<br>
-By the way, GUI is hidden away from the repo.<br>
-You can enable it by uncommenting the code in gui.py
+
+
 
 ## Contact
 
